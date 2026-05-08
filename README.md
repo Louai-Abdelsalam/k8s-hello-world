@@ -386,9 +386,12 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 - **Verify allowed traffic:** The frontend pods can still reach MariaDB (repeat the curl test from Phase 7 to confirm reads and writes still work)
 - **Verify denied traffic:** Run a temporary pod with a non-matching label and attempt to connect: `kubectl run test-pod --rm -it --image=mariadb:11.8 -n guestbook -- mysql -h guestbook-mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"` — this should time out or be refused
 
-### Phase 9 — CronJob and Ingress
+### Phase 9 — CronJob
 
 - Apply the CronJob manifest
-- **Verify CronJob:** Wait approximately 1 minute; `kubectl get cronjobs -n guestbook` shows `guestbook-cleanup` with a recent last schedule time; `kubectl get jobs -n guestbook -l app=cleanup` shows a completed job; inspect its logs (`kubectl logs job/<job-name> -n guestbook`) to confirm the DELETE statement ran without errors
+- **Verify:** Wait approximately 1 minute; `kubectl get cronjobs -n guestbook` shows `guestbook-cleanup` with a recent last schedule time; `kubectl get jobs -n guestbook -l app=cleanup` shows a completed job; inspect its logs (`kubectl logs job/<job-name> -n guestbook`) to confirm the DELETE statement ran without errors
+
+### Phase 10 — Ingress
+
 - Apply the Ingress manifest
-- **Verify Ingress:** Run `minikube ip` to get the cluster IP; access `http://<minikube-ip>/` in a browser and confirm the guestbook page loads, displays entries, and allows submitting new entries
+- **Verify:** Run `minikube ip` to get the cluster IP; access `http://<minikube-ip>/` in a browser and confirm the guestbook page loads, displays entries, and allows submitting new entries
