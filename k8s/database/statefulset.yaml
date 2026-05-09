@@ -51,10 +51,10 @@ spec:
               memory: 512Mi
           readinessProbe:
             exec:
-              command: ["sh", "-c", "mysqladmin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
+              command: ["sh", "-c", "mariadb-admin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
           livenessProbe:
             exec:
-              command: ["sh", "-c", "mysqladmin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
+              command: ["sh", "-c", "mariadb-admin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
       volumes:
         - name: mariadb-data
           persistentVolumeClaim:

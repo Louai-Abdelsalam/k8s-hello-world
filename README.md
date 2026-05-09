@@ -283,7 +283,7 @@ The container image is based on `alpine`, with `python3`, `py3-flask`, and `py3-
 - **Namespace:** `guestbook`
 - **Image:** `mariadb:11.8`
 - **Labels:** `app: seed`, `project: guestbook`
-- **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
+- **Command:** `["sh", "-c", "mariadb -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
 - **Restart policy:** Never
 - **Resources:** requests 100m CPU / 128Mi memory; limits 200m CPU / 256Mi memory
 - **Volume mount:** `guestbook-seed-sql` ConfigMap mounted at `/scripts/seed.sql` (subPath: `seed.sql`)
@@ -298,7 +298,7 @@ The container image is based on `alpine`, with `python3`, `py3-flask`, and `py3-
 - **Image:** `mariadb:11.8`
 - **Schedule:** `*/1 * * * *` (every 1 minute)
 - **Labels:** `app: cleanup`, `project: guestbook`
-- **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
+- **Command:** `["sh", "-c", "mariadb -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
 - **Restart policy:** Never
 - **Resources:** requests 50m CPU / 64Mi memory; limits 100m CPU / 128Mi memory
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
@@ -372,15 +372,15 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 ### Phase 5 — Database
 
 - Apply the MariaDB StatefulSet and MariaDB ClusterIP Service manifests
-- **Verify:** `kubectl get pods -n guestbook -l app=mariadb` shows the pod in Running status; exec into the pod and run `mysql -u root -prootpass123 -e "SELECT 1"` to confirm MariaDB is responding
+- **Verify:** `kubectl get pods -n guestbook -l app=mariadb` shows the pod in Running status; exec into the pod and run `mariadb -u root -prootpass123 -e "SELECT 1"` to confirm MariaDB is responding
 
 ### Phase 6 — Seed Job
 
 - Apply the Job manifest
 - **Verify:** `kubectl get jobs -n guestbook` shows `guestbook-seed` with status Completed; exec into the MariaDB pod and verify:
-  - Table exists: `mysql -u root -prootpass123 guestbook -e "DESCRIBE entries"`
-  - Seed data present: `mysql -u root -prootpass123 guestbook -e "SELECT * FROM entries"`
-  - App user works: `mysql -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"`
+  - Table exists: `mariadb -u root -prootpass123 guestbook -e "DESCRIBE entries"`
+  - Seed data present: `mariadb -u root -prootpass123 guestbook -e "SELECT * FROM entries"`
+  - App user works: `mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"`
 
 ### Phase 7 — Frontend
 
@@ -395,7 +395,7 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 
 - Apply the NetworkPolicy manifest
 - **Verify allowed traffic:** The frontend pods can still reach MariaDB (repeat the curl test from Phase 7 to confirm reads and writes still work)
-- **Verify denied traffic:** Run a temporary pod with a non-matching label and attempt to connect: `kubectl run test-pod --rm -it --image=mariadb:11.8 -n guestbook -- mysql -h guestbook-mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"` — this should time out or be refused
+- **Verify denied traffic:** Run a temporary pod with a non-matching label and attempt to connect: `kubectl run test-pod --rm -it --image=mariadb:11.8 -n guestbook -- mariadb -h guestbook-mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"` — this should time out or be refused
 
 ### Phase 9 — CronJob
 

@@ -17,7 +17,7 @@ spec:
       containers:
         - name: seed
           image: mariadb:11.8
-          command: ["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]
+          command: ["sh", "-c", "mariadb -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]
           env:
             - name: DB_HOST
               valueFrom:

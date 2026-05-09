@@ -20,7 +20,7 @@ spec:
           containers:
             - name: cleanup
               image: mariadb:11.8
-              command: ["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]
+              command: ["sh", "-c", "mariadb -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]
               env:
                 - name: DB_HOST
                   valueFrom:
