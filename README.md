@@ -377,10 +377,10 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 ### Phase 6 — Seed Job
 
 - Apply the Job manifest
-- **Verify:** `kubectl get jobs -n guestbook` shows `guestbook-seed` with status Completed; exec into the MariaDB pod and verify:
-  - Table exists: `mariadb -u root -prootpass123 guestbook -e "DESCRIBE entries"`
-  - Seed data present: `mariadb -u root -prootpass123 guestbook -e "SELECT * FROM entries"`
-  - App user works: `mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"`
+- **Verify:** `kubectl get jobs -n guestbook` shows `guestbook-seed` with status Completed; then verify:
+  - Table exists: `kubectl exec <mariadb-pod-name> -n guestbook -- mariadb -u root -prootpass123 guestbook -e "DESCRIBE entries"`
+  - Seed data present: `kubectl exec <mariadb-pod-name> -n guestbook -- mariadb -u root -prootpass123 guestbook -e "SELECT * FROM entries"`
+  - App user works: `kubectl exec <mariadb-pod-name> -n guestbook -- mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"`
 
 ### Phase 7 — Frontend
 
