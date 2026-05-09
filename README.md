@@ -130,7 +130,7 @@ Denied:    Any other pod → MariaDB Service (blocked by NetworkPolicy)
 | MariaDB port          | 3306                                                                  |
 | Frontend port         | 5000 (Flask default)                                                  |
 | Frontend Service port | 80 (forwards to container port 5000)                                  |
-| Ingress               | Routes `/` to `guestbook-frontend` Service on port 80; no hostname    |
+| Ingress               | Routes `/` (pathType: Prefix) to `guestbook-frontend` Service on port 80; no hostname; ingressClassName: nginx |
 | Naming convention     | `guestbook-<component>` for all resources                             |
 | Labels                | `app: <component>` and `project: guestbook` on all resources          |
 | StorageClass provisioner | `k8s.io/minikube-hostpath`                                         |
@@ -191,7 +191,7 @@ The container image should be as minimal as possible — a Python base image, th
 - **Container port:** 3306
 - **Labels:** `app: mariadb`, `project: guestbook`
 - **Volume mount:** `guestbook-mariadb-pvc` mounted at `/var/lib/mysql`
-- **Env from ConfigMap (`guestbook-config`):** `DB_NAME`, `DB_PORT`
+- **Env from ConfigMap (`guestbook-config`):** `DB_NAME`; `DB_PORT` mapped to `MARIADB_TCP_PORT` (overrides MariaDB's default port, even if with the same port value — this keeps the port consistent via a single source of truth)
 - **Env from Secret (`guestbook-secret`):** `MARIADB_ROOT_PASSWORD`
 - **Note:** Does not use `volumeClaimTemplates`; references the existing PVC directly
 
@@ -231,7 +231,8 @@ The container image should be as minimal as possible — a Python base image, th
 - **Kind:** Ingress
 - **Name:** `guestbook-ingress`
 - **Namespace:** `guestbook`
-- **Rules:** HTTP path `/` routes to Service `guestbook-frontend` on port 80
+- **Ingress class:** `nginx` (`ingressClassName: nginx`) — required so the nginx controller installed by Minikube's ingress addon knows to process this resource
+- **Rules:** HTTP path `/` with `pathType: Prefix` routes to Service `guestbook-frontend` on port 80. `Prefix` matches all URLs (since every path starts with `/`), which is correct for a single-service ingress.
 - **Hostname:** None (matches any hostname)
 - **Requires:** Minikube ingress addon enabled (`minikube addons enable ingress`)
 - **Access via:** IP returned by `minikube ip`
@@ -266,7 +267,7 @@ The container image should be as minimal as possible — a Python base image, th
   - `MARIADB_ROOT_PASSWORD`: `rootpass123`
   - `DB_USERNAME`: `guestbook_user`
   - `DB_PASSWORD`: `guestbook_pass`
-- **Consumed by:** StatefulSet (`MARIADB_ROOT_PASSWORD`), Job (all three keys), Deployment (`DB_USERNAME`, `DB_PASSWORD`), CronJob (`DB_USERNAME`, `DB_PASSWORD`)
+- **Consumed by:** StatefulSet (only `MARIADB_ROOT_PASSWORD`), Job (all three keys), Deployment (only `DB_USERNAME`, `DB_PASSWORD`), CronJob (only `DB_USERNAME`, `DB_PASSWORD`)
 - **Note:** Values are in plain text intentionally. See the disclaimer in Constraints and Assumptions.
 
 ### Job (Database Seed)
@@ -276,7 +277,8 @@ The container image should be as minimal as possible — a Python base image, th
 - **Namespace:** `guestbook`
 - **Image:** `mariadb:11.8`
 - **Labels:** `app: seed`, `project: guestbook`
-- **Command:** Runs the seed SQL script using the mysql CLI, connecting as root: `mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql`
+- **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
+- **Restart policy:** Never
 - **Volume mount:** `guestbook-seed-sql` ConfigMap mounted at `/scripts/seed.sql` (subPath: `seed.sql`)
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
 - **Env from Secret (`guestbook-secret`):** `MARIADB_ROOT_PASSWORD`, `DB_USERNAME`, `DB_PASSWORD`
@@ -289,7 +291,8 @@ The container image should be as minimal as possible — a Python base image, th
 - **Image:** `mariadb:11.8`
 - **Schedule:** `*/1 * * * *` (every 1 minute)
 - **Labels:** `app: cleanup`, `project: guestbook`
-- **Command:** Inline SQL via the mysql CLI: `mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e "DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;"`
+- **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
+- **Restart policy:** Never
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
 - **Env from Secret (`guestbook-secret`):** `DB_USERNAME`, `DB_PASSWORD`
 
