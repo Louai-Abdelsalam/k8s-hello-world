@@ -125,7 +125,7 @@ Denied:    Any other pod → MariaDB Service (blocked by NetworkPolicy)
 | Cluster tool          | Minikube                                                              |
 | Namespace             | `guestbook`                                                           |
 | MariaDB image         | `mariadb:11.8`                                                        |
-| Frontend image        | `guestbook-frontend:1.0` (custom, built locally)                      |
+| Frontend image        | `guestbook-frontend:1.0` (custom, built locally from `alpine`)        |
 | Job/CronJob image     | `mariadb:11.8` (reuses database image for its mysql CLI)              |
 | MariaDB port          | 3306                                                                  |
 | Frontend port         | 5000 (Flask default)                                                  |
@@ -143,9 +143,9 @@ The frontend is a minimal Python Flask application with the following behavior:
 - **GET `/messages`** — Returns all entries from the `entries` table as JSON.
 - **POST `/messages`** — Accepts a JSON body with a `message` field, inserts it into the `entries` table, and returns the created entry as JSON.
 
-The application depends on Flask and a MariaDB-compatible Python database client library. It reads database connection details from environment variables populated by the ConfigMap and Secret.
+The application depends on Flask and PyMySQL. It reads database connection details from environment variables populated by the ConfigMap and Secret.
 
-The container image should be as minimal as possible — a Python base image, the dependencies installed, and the application code copied in.
+The container image is based on `alpine`, with `python3`, `py3-flask`, and `py3-pymysql` installed via apk. No pip or requirements.txt — all dependencies are managed by Alpine's package manager. The application code is copied into `/app` and run with `python3`.
 
 ## Detailed Resource Inventory
 
@@ -168,7 +168,7 @@ The container image should be as minimal as possible — a Python base image, th
 - **Capacity:** 1Gi
 - **Access mode:** ReadWriteOnce
 - **StorageClass:** `guestbook-storage`
-- **Host path:** `/data/guestbook-mariadb` (directory on the minikube node)
+- **Host path:** `/data/guestbook-mariadb` (directory on the minikube node, created automatically if absent)
 
 ### PersistentVolumeClaim
 
@@ -193,6 +193,9 @@ The container image should be as minimal as possible — a Python base image, th
 - **Volume mount:** `guestbook-mariadb-pvc` mounted at `/var/lib/mysql`
 - **Env from ConfigMap (`guestbook-config`):** `DB_NAME`; `DB_PORT` mapped to `MARIADB_TCP_PORT` (overrides MariaDB's default port, even if with the same port value — this keeps the port consistent via a single source of truth)
 - **Env from Secret (`guestbook-secret`):** `MARIADB_ROOT_PASSWORD`
+- **Resources:** requests 250m CPU / 256Mi memory; limits 500m CPU / 512Mi memory
+- **Readiness probe:** exec `sh -c "mysqladmin ping -uroot -p$MARIADB_ROOT_PASSWORD"`
+- **Liveness probe:** same command as readiness probe
 - **Note:** Does not use `volumeClaimTemplates`; references the existing PVC directly
 
 ### Service (MariaDB)
@@ -216,6 +219,9 @@ The container image should be as minimal as possible — a Python base image, th
 - **Labels:** `app: frontend`, `project: guestbook`
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
 - **Env from Secret (`guestbook-secret`):** `DB_USERNAME`, `DB_PASSWORD`
+- **Resources:** requests 100m CPU / 128Mi memory; limits 300m CPU / 256Mi memory (per replica)
+- **Readiness probe:** HTTP GET `/messages` on port 5000 — pod only receives traffic once it can successfully query the database
+- **Liveness probe:** HTTP GET `/` on port 5000
 
 ### Service (Frontend)
 
@@ -279,6 +285,7 @@ The container image should be as minimal as possible — a Python base image, th
 - **Labels:** `app: seed`, `project: guestbook`
 - **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
 - **Restart policy:** Never
+- **Resources:** requests 100m CPU / 128Mi memory; limits 200m CPU / 256Mi memory
 - **Volume mount:** `guestbook-seed-sql` ConfigMap mounted at `/scripts/seed.sql` (subPath: `seed.sql`)
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
 - **Env from Secret (`guestbook-secret`):** `MARIADB_ROOT_PASSWORD`, `DB_USERNAME`, `DB_PASSWORD`
@@ -293,6 +300,7 @@ The container image should be as minimal as possible — a Python base image, th
 - **Labels:** `app: cleanup`, `project: guestbook`
 - **Command:** `["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
 - **Restart policy:** Never
+- **Resources:** requests 50m CPU / 64Mi memory; limits 100m CPU / 128Mi memory
 - **Env from ConfigMap (`guestbook-config`):** `DB_HOST`, `DB_PORT`, `DB_NAME`
 - **Env from Secret (`guestbook-secret`):** `DB_USERNAME`, `DB_PASSWORD`
 
