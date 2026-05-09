@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: guestbook-ingress
+  namespace: guestbook
+  labels:
+    app: frontend
+    project: guestbook
+spec:
+  # nginx is the ingress controller installed by Minikube's built-in ingress addon
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: guestbook-frontend
+                port:
+                  number: 80

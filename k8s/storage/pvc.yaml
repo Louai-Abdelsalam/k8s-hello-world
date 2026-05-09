@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: guestbook-mariadb-pvc
+  namespace: guestbook
+  labels:
+    app: mariadb
+    project: guestbook
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: guestbook-storage

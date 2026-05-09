@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guestbook-frontend
+  namespace: guestbook
+  labels:
+    app: frontend
+    project: guestbook
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        project: guestbook
+    spec:
+      containers:
+        - name: frontend
+          image: guestbook-frontend:1.0
+          # containerPort omitted — its value would duplicate the Flask port with no
+          # mechanism to keep them in sync in raw YAML. Typically addressed via Helm templating.
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /messages
+              port: 5000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000

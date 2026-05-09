@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: guestbook-mariadb
+  namespace: guestbook
+  labels:
+    app: mariadb
+    project: guestbook
+spec:
+  serviceName: guestbook-mariadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        project: guestbook
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11.8
+          # containerPort omitted — its value would duplicate DB_PORT from the ConfigMap
+          # with no way to keep them in sync in raw YAML. Typically addressed via Helm templating.
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: MARIADB_ROOT_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_NAME
+            - name: MARIADB_TCP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_PORT
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -uroot -p$MARIADB_ROOT_PASSWORD"]
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: guestbook-mariadb-pvc

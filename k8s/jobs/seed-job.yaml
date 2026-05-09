@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: guestbook-seed
+  namespace: guestbook
+  labels:
+    app: seed
+    project: guestbook
+spec:
+  template:
+    metadata:
+      labels:
+        app: seed
+        project: guestbook
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: mariadb:11.8
+          command: ["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u root -p$MARIADB_ROOT_PASSWORD < /scripts/seed.sql"]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: guestbook-config
+                  key: DB_NAME
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: MARIADB_ROOT_PASSWORD
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: guestbook-secret
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: seed-sql
+              mountPath: /scripts/seed.sql
+              subPath: seed.sql
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: seed-sql
+          configMap:
+            name: guestbook-seed-sql

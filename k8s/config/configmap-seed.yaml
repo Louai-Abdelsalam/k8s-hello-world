@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guestbook-seed-sql
+  namespace: guestbook
+  labels:
+    app: seed
+    project: guestbook
+data:
+  seed.sql: |
+    CREATE DATABASE IF NOT EXISTS guestbook;
+
+    CREATE USER IF NOT EXISTS 'guestbook_user'@'%' IDENTIFIED BY 'guestbook_pass';
+    GRANT ALL PRIVILEGES ON guestbook.* TO 'guestbook_user'@'%';
+    FLUSH PRIVILEGES;
+
+    USE guestbook;
+
+    CREATE TABLE IF NOT EXISTS entries (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    INSERT INTO entries (message) VALUES ('Welcome to the guestbook!');
+    INSERT INTO entries (message) VALUES ('This is a sample entry.');
+    INSERT INTO entries (message) VALUES ('Kubernetes is fun!');
