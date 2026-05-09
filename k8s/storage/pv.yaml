@@ -11,7 +11,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: guestbook-storage
-  reclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: /data/guestbook-mariadb
     type: DirectoryOrCreate
