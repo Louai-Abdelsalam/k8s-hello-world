@@ -384,7 +384,7 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 
 ### Phase 7 — Frontend
 
-- Build the frontend image: `docker build -t guestbook-frontend:1.0 .` (from the directory containing the Flask app and Dockerfile)
+- Build the frontend image: `docker build --tag guestbook-frontend:1.0 --network=host .` (from the directory containing the Flask app and Dockerfile)
 - Load the image into Minikube: `minikube image load guestbook-frontend:1.0`
 - Apply the frontend Deployment and frontend ClusterIP Service manifests
 - **Verify:** `kubectl get pods -n guestbook -l app=frontend` shows 2 pods in Running status; port-forward to one pod (`kubectl port-forward <pod> 5000:5000 -n guestbook`) and test:

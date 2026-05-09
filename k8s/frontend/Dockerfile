@@ -1,5 +1,5 @@
 FROM alpine
-RUN apk add --no-cache python3 py3-flask py3-pymysql
+RUN apk update && apk add --no-cache python3 py3-flask py3-pymysql
 WORKDIR /app
 COPY app.py .
 # EXPOSE omitted — documentation-only in Docker, same issue as containerPort in Kubernetes.
