@@ -297,7 +297,7 @@ The container image is based on `alpine`, with `python3`, `py3-flask`, and `py3-
 - **Namespace:** `guestbook`
 - **Image:** `mariadb:11.8`
 - **Schedule:** `*/1 * * * *` (every 1 minute)
-- **Labels:** `app: cleanup`, `project: guestbook`
+- **Labels:** `app: cleanup`, `project: guestbook` (also applied to spun up Job objects)
 - **Command:** `["sh", "-c", "mariadb -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_NAME -e \"DELETE FROM entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;\""]` — `sh -c` ensures the command is interpreted by a shell rather than exec'd directly as the container's main process
 - **Restart policy:** Never
 - **Resources:** requests 50m CPU / 64Mi memory; limits 100m CPU / 128Mi memory
