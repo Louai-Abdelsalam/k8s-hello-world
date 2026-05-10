@@ -372,7 +372,7 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 ### Phase 5 — Database
 
 - Apply the MariaDB StatefulSet and MariaDB ClusterIP Service manifests
-- **Verify:** `kubectl get pods -n guestbook -l app=mariadb` shows the pod in Running status; exec into the pod and run `mariadb -u root -prootpass123 -e "SELECT 1"` to confirm MariaDB is responding
+- **Verify:** `kubectl get pods -n guestbook -l app=mariadb` shows the pod in Running status; `kubectl exec <mariadb-pod-name> -n guestbook -- mariadb -u root -prootpass123 -e "SELECT 1"` confirms MariaDB is responding
 
 ### Phase 6 — Seed Job
 
@@ -395,7 +395,7 @@ DELETE FROM guestbook.entries WHERE created_at < NOW() - INTERVAL 1 MINUTE;
 
 - Apply the NetworkPolicy manifest
 - **Verify allowed traffic:** The frontend pods can still reach MariaDB (repeat the curl test from Phase 7 to confirm reads and writes still work)
-- **Verify denied traffic:** Run a temporary pod with a non-matching label and attempt to connect: `kubectl run test-pod --rm -it --image=mariadb:11.8 -n guestbook -- mariadb -h guestbook-mariadb -u guestbook_user -pguestbook_pass guestbook -e "SELECT 1"` — this should time out or be refused
+- **Verify denied traffic:** Run a temporary pod with a non-matching label and attempt to connect: `kubectl run test-pod --rm --restart=Never --attach --image=mariadb:11.8 -n guestbook -- mariadb -h guestbook-mariadb -u guestbook_user -pguestbook_pass guestbook --connect-timeout=5 -e "SELECT 1"` — the command should fail with a connection error or timeout, confirming the NetworkPolicy is blocking the traffic
 
 ### Phase 9 — CronJob
 

@@ -9,6 +9,10 @@ metadata:
 spec:
   schedule: "*/1 * * * *"
   jobTemplate:
+    metadata:
+      labels:
+        app: cleanup
+        project: guestbook
     spec:
       template:
         metadata:
